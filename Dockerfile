@@ -17,17 +17,20 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.11-slim AS runner
 WORKDIR /app
 
-# Crear usuario no-root por seguridad
+# Crear usuario sin privilegios root
 RUN groupadd -r appgroup && useradd -r -g appgroup -s /bin/false appuser
 COPY --from=builder /root/.local /home/appuser/.local
 
-# Crear las carpetas internas directamente dentro del contenedor
+# Copiar todo el contenido del repositorio al contenedor
+COPY . /app/
+
+# Crear carpetas auxiliares por si no existen
 RUN mkdir -p /app/src /app/models /app/data
 
-# Copiar el código fuente
-COPY src/ /app/src/
+# Si app.py está en la raíz, moverlo o duplicarlo a /app/src/ para compatibilidad
+RUN if [ -f /app/app.py ]; then cp /app/app.py /app/src/app.py; fi
+RUN if [ -f /app/predictor.py ]; then cp /app/predictor.py /app/src/predictor.py; fi
 
-# Configurar variables de entorno requeridas por Streamlit y Render
 ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -44,4 +47,5 @@ EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
 
-CMD ["streamlit", "run", "src/app.py"]
+# Ejecutar app.py desde src si existe, o desde la raíz
+CMD ["sh", "-c", "if [ -f /app/src/app.py ]; then streamlit run /app/src/app.py; else streamlit run /app/app.py; fi"]

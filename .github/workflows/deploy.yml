@@ -1,0 +1,36 @@
+name: CI/CD - Pruebas y Construccion Docker
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar Repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Entorno Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Dependencias
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ejecutar Pruebas Automatizadas
+        run: |
+          pytest tests/ -v
+
+      - name: Construir Imagen Docker
+        run: |
+          docker build -t tres-lunas-velas-app:${{ github.sha }} .
+
+      - name: Validar Ejecución del Contenedor
+        run: |
+          docker run -d -p 8501:8501 --name test_container tres-lunas-velas-app:${{ github.sha }}
+          sleep 6
+          curl --fail http://localhost:8501/_stcore/health || exit 1

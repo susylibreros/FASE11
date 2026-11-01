@@ -1,0 +1,6 @@
+tipo_evento,num_asistentes,dias_anticipacion,stock_actual_unidades,incluye_sales_gourmet,aroma_preferido
+boda,160,5,12,yes,lavanda
+cena_gourmet,14,35,90,no,miel_silvestre
+corporativo,200,8,20,yes,bergamota
+retiro_bienestar,30,22,65,yes,salvia_palo_santo
+boda,95,3,8,no,lavanda
