@@ -1,4 +1,6 @@
-# ETAPA 1: Builder
+# ==============================================================================
+# ETAPA 1: Construcción de dependencias
+# ==============================================================================
 FROM python:3.11-slim AS builder
 WORKDIR /build
 
@@ -9,24 +11,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# ETAPA 2: Runtime final ligero y seguro
+# ==============================================================================
+# ETAPA 2: Runtime final
+# ==============================================================================
 FROM python:3.11-slim AS runner
 WORKDIR /app
 
-# Crear usuario sin privilegios root
+# Crear usuario no-root por seguridad
 RUN groupadd -r appgroup && useradd -r -g appgroup -s /bin/false appuser
 COPY --from=builder /root/.local /home/appuser/.local
 
-COPY src/ /app/src/
-COPY models/ /app/models/
-COPY data/ /app/data/
+# Crear las carpetas internas directamente dentro del contenedor
+RUN mkdir -p /app/src /app/models /app/data
 
+# Copiar el código fuente
+COPY src/ /app/src/
+
+# Configurar variables de entorno requeridas por Streamlit y Render
 ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_PORT=8501 \
     STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
-    STREAMLIT_SERVER_HEADLESS=true
+    STREAMLIT_SERVER_HEADLESS=true \
+    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
 RUN chown -R appuser:appgroup /app
 USER appuser
